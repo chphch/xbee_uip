@@ -1,0 +1,3 @@
+[submodule "tinydtls-uip-port"]
+	path = tinydtls-uip-port
+	url = git@github.com:sungminlee114/tinydtls-uip-port.git
