@@ -1,0 +1,1 @@
+make -j 16 && ./dtls_server /dev/ttyUSB0
