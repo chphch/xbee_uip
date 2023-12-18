@@ -33,6 +33,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "uip.h"
 #include "dtls_server.h"
@@ -157,11 +158,17 @@ PT_THREAD(handle_dtls_server(void))
     static mbedtls_ssl_cache_context cache;
 #endif
 
+    static clock_time_t start_time;
+    static size_t num_received = 0;
+
     PT_BEGIN(&s.pt);
+    start_time = clock_time();
 
 #if defined(MBEDTLS_DEBUG_C)
 	//mbedtls_debug_set_threshold(3);
 #endif
+
+init:
 
  /*
      * 0. Initialize the RNG and the session data
@@ -330,6 +337,9 @@ reset:
 
     do {
 		ret = mbedtls_ssl_handshake( &ssl );
+        char error_buf[100];
+        mbedtls_strerror( ret, error_buf, 100 );
+        printf( "Handshake error: %d - %s\n\n", ret, error_buf );
 		if (ret == MBEDTLS_ERR_SSL_WANT_READ)
 			PT_YIELD_UNTIL(&s.pt, uip_newdata());
 	}
@@ -385,6 +395,8 @@ reset:
                 goto reset;
         }
     }
+    int elapsed_secs = (clock_time() - start_time) / 1000;
+    printf( " num_received: %u, elapsed time: %ds\n", ++num_received, elapsed_secs);
 
     len = ret;
     printf( " %d bytes read\n\n%s\n\n", len, buf );
@@ -417,7 +429,12 @@ close_notify:
     printf( "  . Closing the connection..." );
 
     /* No error checking, the connection might be closed already */
-    do ret = mbedtls_ssl_close_notify( &ssl );
+    do {
+        ret = mbedtls_ssl_close_notify( &ssl );
+        char error_buf[100];
+        mbedtls_strerror( ret, error_buf, 100 );
+        printf( "Close notify error: %d - %s\n\n", ret, error_buf );
+    }
     while( ret == MBEDTLS_ERR_SSL_WANT_WRITE );
     ret = 0;
 
@@ -449,6 +466,9 @@ exit:
 #endif
     mbedtls_ctr_drbg_free( &ctr_drbg );
     mbedtls_entropy_free( &entropy );
+
+    sleep(1);
+    goto init;
 
     /* Shell can not handle large exit numbers -> 1 for errors */
     if( ret < 0 )
