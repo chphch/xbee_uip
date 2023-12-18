@@ -37,6 +37,7 @@
 
 
 #include <string.h>
+#include <stdio.h>
 
 #include "uip.h"
 #include "uip_arp.h"
@@ -66,13 +67,13 @@ main(int argc, char *argv[])
 
 #ifdef client
   /* Set IP address of this device */
-  uip_ip6addr(ipaddr, 0xfe80, 0, 0, 0, 0x0213, 0xa200, 0x421c, 0x4af1);
+  uip_ip6addr(ipaddr, 0xfe80, 0, 0, 0, 0x0213, 0xa200, 0x41a5, 0x9a62);
   uip_sethostaddr(ipaddr);
 
   dtls_client_init();
 #else
   /* Set IP address of this device */
-  uip_ip6addr(ipaddr, 0xfe80, 0, 0, 0, 0x0213, 0xa200, 0x421c, 0x4aea);
+  uip_ip6addr(ipaddr, 0xfe80, 0, 0, 0, 0x0213, 0xa200, 0x41a5, 0x9a67);
   uip_sethostaddr(ipaddr);
 
   dtls_server_init();
