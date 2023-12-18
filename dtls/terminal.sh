@@ -1,0 +1,1 @@
+/mnt/c/Program\ Files\ \(x86\)/teraterm/ttermpro.exe /C=6 /BAUD=115200
