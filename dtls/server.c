@@ -360,6 +360,7 @@ reset:
 
     printf( " ok\n" );
 
+read:
     /*
      * 6. Read the echo Request
      */
@@ -421,6 +422,8 @@ reset:
     printf( " %d bytes written\n\n%s\n\n", len, buf );
 
 	PT_YIELD(&s.pt);
+
+    goto read;
 
     /*
      * 8. Done, cleanly close the connection
