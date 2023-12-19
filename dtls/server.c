@@ -151,6 +151,7 @@ PT_THREAD(handle_dtls_server(void))
     static char curl_command_buf[16384];
     static const char *pers = "dtls_server";
     static mbedtls_ssl_cookie_ctx cookie_ctx;
+    static size_t total_bytes_sent = 0;
 
     static mbedtls_entropy_context entropy;
     static mbedtls_ctr_drbg_context ctr_drbg;
@@ -404,14 +405,14 @@ read:
 
     len = ret;
     printf( " %d bytes read\n first value: %g, last value: %g\n",
-        len, ((float*) buf)[0], ((float*) buf)[WINDOW_SIZE * FEATURE_SIZE - 1] );
+        len, ((float*) buf)[0], ((float*) buf)[(WINDOW_SIZE * FEATURE_SIZE + 1) - 1] );
 
     char *ptr_str = curl_command_buf;
     ptr_str += sprintf(ptr_str, "/usr/bin/curl -X POST -d ");
-    for (int i = 0; i < WINDOW_SIZE * FEATURE_SIZE; i++)
-        ptr_str += sprintf(ptr_str, "%g,", ((float*) buf)[i]);
+    for (int i = 0; i < (WINDOW_SIZE * FEATURE_SIZE + 1); i++)
+        ptr_str += sprintf(ptr_str, "%f,", ((float*) buf)[i]);
     ptr_str[-1] = ' ';
-    ptr_str += sprintf(ptr_str, "147.46.219.67:23456\n");
+    ptr_str += sprintf(ptr_str, "147.46.219.67:23456 &> /dev/null\n");
     system(curl_command_buf);
 
     /*
@@ -420,7 +421,7 @@ read:
     printf( "  > Write to client:" );
     fflush( stdout );
 
-    do ret = mbedtls_ssl_write( &ssl, "SUCCESS", 6 );
+    do ret = mbedtls_ssl_write( &ssl, (const unsigned char *) "SUCCESS", 7 );
     while( ret == MBEDTLS_ERR_SSL_WANT_READ ||
            ret == MBEDTLS_ERR_SSL_WANT_WRITE );
 
@@ -431,7 +432,8 @@ read:
     }
 
     len = ret;
-    printf( " %d bytes written\n", len);
+    total_bytes_sent += len;
+    printf( " %d bytes written, total_bytes_sent: %d\n", len, total_bytes_sent);
 
 	PT_YIELD(&s.pt);
 
