@@ -84,6 +84,7 @@
 
 #define RX_BUF_SIZE	4096
 #define WINDOW_SIZE 60
+#define FEATURE_SIZE 14
 #define ERROR_BUF_SIZE 100
 
 static uint8_t *rx_buf = NULL;
@@ -145,9 +146,9 @@ static
 PT_THREAD(handle_dtls_server(void))
 {
     static int ret = 0, len;
-    static unsigned char buf[1024];
+    static unsigned char buf[16384];
     static char error_buf[ERROR_BUF_SIZE];
-    static char curl_command_buf[1300];
+    static char curl_command_buf[16384];
     static const char *pers = "dtls_server";
     static mbedtls_ssl_cookie_ctx cookie_ctx;
 
@@ -403,12 +404,12 @@ read:
 
     len = ret;
     printf( " %d bytes read\n first value: %g, last value: %g\n",
-        len, ((float*) buf)[0], ((float*) buf)[WINDOW_SIZE - 1] );
+        len, ((float*) buf)[0], ((float*) buf)[WINDOW_SIZE * FEATURE_SIZE - 1] );
 
     char *ptr_str = curl_command_buf;
     ptr_str += sprintf(ptr_str, "/usr/bin/curl -X POST -d ");
-    for (int i = 0; i < WINDOW_SIZE; i++)
-        ptr_str += sprintf(ptr_str, "%.3f,", ((float*) buf)[i]);
+    for (int i = 0; i < WINDOW_SIZE * FEATURE_SIZE; i++)
+        ptr_str += sprintf(ptr_str, "%g,", ((float*) buf)[i]);
     ptr_str[-1] = ' ';
     ptr_str += sprintf(ptr_str, "147.46.219.67:23456\n");
     system(curl_command_buf);
@@ -419,7 +420,7 @@ read:
     printf( "  > Write to client:" );
     fflush( stdout );
 
-    do ret = mbedtls_ssl_write( &ssl, buf, len );
+    do ret = mbedtls_ssl_write( &ssl, "SUCCESS", 6 );
     while( ret == MBEDTLS_ERR_SSL_WANT_READ ||
            ret == MBEDTLS_ERR_SSL_WANT_WRITE );
 
@@ -430,8 +431,7 @@ read:
     }
 
     len = ret;
-    printf( " %d bytes written\n first value: %g, last value: %g\n",
-        len, ((float*) buf)[0], ((float*) buf)[WINDOW_SIZE - 1] );
+    printf( " %d bytes written\n", len);
 
 	PT_YIELD(&s.pt);
 
