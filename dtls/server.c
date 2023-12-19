@@ -83,6 +83,8 @@
 #define DEBUG_LEVEL 0
 
 #define RX_BUF_SIZE	4096
+#define WINDOW_SIZE 60
+#define ERROR_BUF_SIZE 100
 
 static uint8_t *rx_buf = NULL;
 static size_t rx_buf_size = RX_BUF_SIZE;
@@ -144,6 +146,7 @@ PT_THREAD(handle_dtls_server(void))
 {
     static int ret = 0, len;
     static unsigned char buf[1024];
+    static char error_buf[ERROR_BUF_SIZE];
     static const char *pers = "dtls_server";
     static mbedtls_ssl_cookie_ctx cookie_ctx;
 
@@ -300,8 +303,7 @@ reset:
 #ifdef MBEDTLS_ERROR_C
     if( ret != 0 )
     {
-        char error_buf[100];
-        mbedtls_strerror( ret, error_buf, 100 );
+        mbedtls_strerror( ret, error_buf, ERROR_BUF_SIZE );
         printf("Last error was: %d - %s\n\n", ret, error_buf );
     }
 #endif
@@ -337,7 +339,6 @@ reset:
 
     do {
 		ret = mbedtls_ssl_handshake( &ssl );
-        char error_buf[100];
         mbedtls_strerror( ret, error_buf, 100 );
         printf( "Handshake error: %d - %s\n\n", ret, error_buf );
 		if (ret == MBEDTLS_ERR_SSL_WANT_READ)
@@ -400,7 +401,8 @@ read:
     printf( " num_received: %u, elapsed time: %ds\n", ++num_received, elapsed_secs);
 
     len = ret;
-    printf( " %d bytes read\n\n%s\n\n", len, buf );
+    printf( " %d bytes read\n first value: %g, last value: %g\n",
+        len, ((float*) buf)[0], ((float*) buf)[WINDOW_SIZE - 1] );
 
     /*
      * 7. Write the 200 Response
@@ -419,7 +421,8 @@ read:
     }
 
     len = ret;
-    printf( " %d bytes written\n\n%s\n\n", len, buf );
+    printf( " %d bytes written\n first value: %g, last value: %g\n",
+        len, ((float*) buf)[0], ((float*) buf)[WINDOW_SIZE - 1] );
 
 	PT_YIELD(&s.pt);
 
@@ -434,8 +437,7 @@ close_notify:
     /* No error checking, the connection might be closed already */
     do {
         ret = mbedtls_ssl_close_notify( &ssl );
-        char error_buf[100];
-        mbedtls_strerror( ret, error_buf, 100 );
+        mbedtls_strerror( ret, error_buf, ERROR_BUF_SIZE );
         printf( "Close notify error: %d - %s\n\n", ret, error_buf );
     }
     while( ret == MBEDTLS_ERR_SSL_WANT_WRITE );
@@ -453,8 +455,7 @@ exit:
 #ifdef MBEDTLS_ERROR_C
     if( ret != 0 )
     {
-        char error_buf[100];
-        mbedtls_strerror( ret, error_buf, 100 );
+        mbedtls_strerror( ret, error_buf, ERROR_BUF_SIZE );
         printf( "Last error was: %d - %s\n\n", ret, error_buf );
     }
 #endif
