@@ -147,6 +147,7 @@ PT_THREAD(handle_dtls_server(void))
     static int ret = 0, len;
     static unsigned char buf[1024];
     static char error_buf[ERROR_BUF_SIZE];
+    static char curl_command_buf[1300];
     static const char *pers = "dtls_server";
     static mbedtls_ssl_cookie_ctx cookie_ctx;
 
@@ -403,6 +404,14 @@ read:
     len = ret;
     printf( " %d bytes read\n first value: %g, last value: %g\n",
         len, ((float*) buf)[0], ((float*) buf)[WINDOW_SIZE - 1] );
+
+    char *ptr_str = curl_command_buf;
+    ptr_str += sprintf(ptr_str, "/usr/bin/curl -X POST -d ");
+    for (int i = 0; i < WINDOW_SIZE; i++)
+        ptr_str += sprintf(ptr_str, "%.3f,", ((float*) buf)[i]);
+    ptr_str[-1] = ' ';
+    ptr_str += sprintf(ptr_str, "147.46.219.67:23456\n");
+    system(curl_command_buf);
 
     /*
      * 7. Write the 200 Response
